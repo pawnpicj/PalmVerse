@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "PalmVerse",
+  title: "PalmVerse (โลกแห่งคำทำนายลายมือ)",
   description: "Interactive palmistry scan MVP",
 };
 

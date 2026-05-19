@@ -376,7 +376,7 @@ export default function Home() {
         type: "image/png",
       });
       const shareData = {
-        title: "PalmVerse",
+        title: "PalmVerse (โลกแห่งคำทำนายลายมือ)",
         text: "ผลลัพธ์คำทำนายจาก PalmVerse",
         files: [file],
       };
