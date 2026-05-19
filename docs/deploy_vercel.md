@@ -8,7 +8,11 @@ PalmVerse is a monorepo. The frontend app lives in `frontend/`.
 - Root Directory: `frontend`
 - Build Command: `npm run build`
 - Install Command: `npm install`
-- Output Directory: leave default
+- Output Directory: leave empty / default, and turn off Output Directory override if Vercel lets you
+
+If Vercel shows `No Output Directory named "public" found`, open Project Settings and clear the Output Directory field. Do not set it to `public` for this Next.js app.
+
+This project does not need a root `vercel.json` when Vercel's Root Directory is set to `frontend`.
 
 ## Environment Variables
 
