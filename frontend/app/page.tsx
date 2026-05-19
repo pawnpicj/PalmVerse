@@ -319,39 +319,39 @@ export default function Home() {
     context.fillText("PALMVERSE", 86, 128);
 
     context.fillStyle = "#f7f1df";
-    context.font = "700 70px Arial";
-    context.fillText("ผลลัพธ์คำทำนาย", 86, 218);
+    context.font = "700 64px Arial";
+    context.fillText("คำทำนาย", 86, 210);
 
     const readings = Object.entries(scanResult.data.analysis);
-    let y = 320;
+    let y = 292;
 
     readings.slice(0, 4).forEach(([id, reading]) => {
       context.fillStyle = "rgba(255, 255, 255, 0.055)";
       context.strokeStyle = "rgba(247, 241, 223, 0.16)";
       context.lineWidth = 2;
       context.beginPath();
-      context.roundRect(86, y - 60, width - 172, 225, 22);
+      context.roundRect(86, y - 48, width - 172, 224, 22);
       context.fill();
       context.stroke();
 
       context.fillStyle = "#e5b84c";
-      context.font = "700 30px Arial";
+      context.font = "700 27px Arial";
       context.fillText(READING_LABELS[id] ?? "คำทำนาย", 122, y);
 
       context.fillStyle = "#f7f1df";
-      context.font = "700 38px Arial";
-      context.fillText(reading.title, 122, y + 54);
+      context.font = "700 35px Arial";
+      context.fillText(reading.title, 122, y + 48);
 
       context.fillStyle = "#cfc5ad";
-      context.font = "400 30px Arial";
-      wrapCanvasText(context, reading.description, 122, y + 104, width - 244, 42, 2);
+      context.font = "400 27px Arial";
+      wrapCanvasText(context, reading.description, 122, y + 92, width - 244, 35, 3);
 
-      y += 255;
+      y += 238;
     });
 
     context.fillStyle = "#b8ac91";
     context.font = "400 26px Arial";
-    context.fillText("เพื่อความบันเทิงและการทดลอง MVP เท่านั้น", 86, height - 105);
+    context.fillText("เพื่อความบันเทิงและการทดลอง MVP เท่านั้น", 86, height - 86);
 
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/png", 0.95);
