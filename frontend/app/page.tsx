@@ -12,6 +12,13 @@ type SuggestedLine = {
   points: PalmPoint[];
 };
 
+const READING_LABELS: Record<string, string> = {
+  heart_line: "ความรักและความสัมพันธ์",
+  head_line: "ความคิดและการตัดสินใจ",
+  life_line: "พลังชีวิตและจังหวะชีวิต",
+  fate_line: "เส้นทางวาสนาและโอกาส",
+};
+
 type ScanResponse = {
   status: string;
   data: {
@@ -327,29 +334,9 @@ export default function Home() {
 
         {scanResult ? (
           <div className="reading-list">
-            <article className="reading-card scan-meta">
-              <p className="reading-id">SCAN_MODE</p>
-              <h3>
-                {captureSource === "upload" ? "อัปโหลดรูป" : "ถ่ายจากกล้อง"} ·{" "}
-                {scanResult.data.user_hand === "left" ? "มือซ้าย" : "มือขวา"}
-              </h3>
-              <p>ไฟล์: {scanResult.data.image.filename}</p>
-              <p>
-                {scanResult.data.processing.mediapipe_hand_enabled
-                  ? scanResult.data.processing.error
-                    ? `ใช้ template fallback: ${scanResult.data.processing.error}`
-                    : scanResult.data.processing.hand_detected
-                    ? `MediaPipe Hand ตรวจพบมือ (${scanResult.data.processing.landmarks.length} จุด)`
-                    : "MediaPipe Hand เปิดอยู่ แต่ยังตรวจไม่พบมือในภาพนี้"
-                  : "ยังไม่ได้ติดตั้ง MediaPipe Hand ใน backend จึงใช้ template mode ก่อน"}
-              </p>
-              <p>
-                Engine: {scanResult.data.reading_engine.name} · #{scanResult.data.reading_engine.image_hash}
-              </p>
-            </article>
             {Object.entries(scanResult.data.analysis).map(([id, reading]) => (
               <article className="reading-card" key={id}>
-                <p className="reading-id">{reading.type_id}</p>
+                <p className="reading-id">{READING_LABELS[id] ?? "คำทำนาย"}</p>
                 <h3>{reading.title}</h3>
                 <p>{reading.description}</p>
               </article>

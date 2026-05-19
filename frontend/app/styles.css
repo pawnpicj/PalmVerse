@@ -273,10 +273,6 @@ h3 {
   padding: 1rem;
 }
 
-.scan-meta {
-  background: rgba(229, 184, 76, 0.08);
-}
-
 .reading-card p:last-child,
 .empty-state p,
 .disclaimer {
