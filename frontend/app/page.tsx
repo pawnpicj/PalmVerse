@@ -250,9 +250,29 @@ export default function Home() {
         <div className="brand-row">
           <div>
             <p className="eyebrow">PalmVerse MVP</p>
-            <h1>ดูดวงลายมือแบบ Interactive</h1>
+            <h1>ดูดวงลายมือ</h1>
           </div>
-          <span className="status-pill">Phase 1</span>
+        </div>
+
+        <div className="hand-picker" aria-label="เลือกมือที่ต้องการสแกน">
+          <p>เลือกมือที่ต้องการสแกน</p>
+          <div className="hand-options">
+            <button
+              className={userHand === "left" ? "hand-option active" : "hand-option"}
+              type="button"
+              onClick={() => setUserHand("left")}
+            >
+              มือซ้าย
+            </button>
+            <button
+              className={userHand === "right" ? "hand-option active" : "hand-option"}
+              type="button"
+              onClick={() => setUserHand("right")}
+            >
+              มือขวา
+            </button>
+          </div>
+          <span>หงายฝ่ามือเข้าหากล้อง วางให้เต็มกรอบ และถ่ายในที่มีแสงพอ</span>
         </div>
 
         <div className="camera-stage">
@@ -281,27 +301,6 @@ export default function Home() {
 
         {cameraError && <p className="message error">{cameraError}</p>}
         {scanError && <p className="message error">{scanError}</p>}
-
-        <div className="hand-picker" aria-label="เลือกมือที่ต้องการสแกน">
-          <p>เลือกมือที่ต้องการสแกน</p>
-          <div className="hand-options">
-            <button
-              className={userHand === "left" ? "hand-option active" : "hand-option"}
-              type="button"
-              onClick={() => setUserHand("left")}
-            >
-              มือซ้าย
-            </button>
-            <button
-              className={userHand === "right" ? "hand-option active" : "hand-option"}
-              type="button"
-              onClick={() => setUserHand("right")}
-            >
-              มือขวา
-            </button>
-          </div>
-          <span>หงายฝ่ามือเข้าหากล้อง วางให้เต็มกรอบ และถ่ายในที่มีแสงพอ</span>
-        </div>
 
         <div className="action-row">
           {!capturedImage ? (
