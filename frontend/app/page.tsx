@@ -29,6 +29,17 @@ type ScanResponse = {
         z: number;
       }>;
     };
+    reading_engine: {
+      name: string;
+      image_hash: string;
+      features: {
+        brightness: number;
+        contrast: number;
+        edge_density: number;
+        palm_spread: number;
+        image_valid: boolean;
+      };
+    };
     image: {
       filename: string;
       content_type: string;
@@ -331,6 +342,9 @@ export default function Home() {
                     ? `MediaPipe Hand ตรวจพบมือ (${scanResult.data.processing.landmarks.length} จุด)`
                     : "MediaPipe Hand เปิดอยู่ แต่ยังตรวจไม่พบมือในภาพนี้"
                   : "ยังไม่ได้ติดตั้ง MediaPipe Hand ใน backend จึงใช้ template mode ก่อน"}
+              </p>
+              <p>
+                Engine: {scanResult.data.reading_engine.name} · #{scanResult.data.reading_engine.image_hash}
               </p>
             </article>
             {Object.entries(scanResult.data.analysis).map(([id, reading]) => (
