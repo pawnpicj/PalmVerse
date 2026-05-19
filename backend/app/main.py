@@ -75,16 +75,26 @@ def detect_hand_landmarks(contents: bytes) -> dict:
         }
 
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
-    options = mp_vision.HandLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=str(HAND_MODEL_PATH)),
-        running_mode=mp_vision.RunningMode.IMAGE,
-        num_hands=1,
-        min_hand_detection_confidence=0.55,
-    )
+    try:
+        rgb_image = np.ascontiguousarray(rgb_image)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
+        options = mp_vision.HandLandmarkerOptions(
+            base_options=mp_python.BaseOptions(model_asset_path=str(HAND_MODEL_PATH)),
+            running_mode=mp_vision.RunningMode.IMAGE,
+            num_hands=1,
+            min_hand_detection_confidence=0.55,
+        )
 
-    with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
-        result = landmarker.detect(mp_image)
+        with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+            result = landmarker.detect(mp_image)
+    except Exception as exc:
+        return {
+            "available": True,
+            "hand_detected": False,
+            "handedness": None,
+            "landmarks": [],
+            "error": f"mediapipe detection failed: {type(exc).__name__}: {exc}",
+        }
 
     if not result.hand_landmarks:
         return {
