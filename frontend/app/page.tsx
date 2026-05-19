@@ -504,7 +504,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="empty-state">
-            <p>ถ่ายภาพหรืออัปโหลดรูป แล้วกดเริ่มสแกนเพื่อดูผลลัพธ์ mock จาก backend</p>
+            <p>ถ่ายภาพหรืออัปโหลดรูป แล้วกดเริ่มสแกนเพื่อดูผลลัพธ์</p>
           </div>
         )}
 
