@@ -243,7 +243,8 @@ h3 {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.share-button {
   min-height: 3rem;
   border-radius: 8px;
   padding: 0.8rem 1rem;
@@ -259,6 +260,12 @@ h3 {
 .secondary-button {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
+}
+
+.share-button {
+  border: 1px solid rgba(229, 184, 76, 0.38);
+  background: var(--gold-soft);
+  color: var(--gold);
 }
 
 .reading-list {

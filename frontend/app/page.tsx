@@ -75,6 +75,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const postcardCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -83,6 +84,7 @@ export default function Home() {
   const [userHand, setUserHand] = useState<UserHand>("right");
   const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
   const attachCameraStream = useCallback(async () => {
@@ -230,7 +232,7 @@ export default function Home() {
 
       setScanResult((await response.json()) as ScanResponse);
     } catch {
-      setScanError(`สแกนไม่สำเร็จ กรุณาตรวจว่า backend ทำงานอยู่ที่ ${API_BASE_URL}`);
+      setScanError("สแกนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือเลือกรูปที่เห็นฝ่ามือชัดกว่าเดิม");
     } finally {
       setIsScanning(false);
     }
@@ -242,6 +244,161 @@ export default function Home() {
     setCaptureSource("camera");
     setScanResult(null);
     setScanError(null);
+  }
+
+  function wrapCanvasText(
+    context: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number,
+    maxLines: number,
+  ) {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let line = "";
+
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      const width = context.measureText(testLine).width;
+
+      if (width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = testLine;
+      }
+
+      if (lines.length === maxLines) {
+        break;
+      }
+    }
+
+    if (line && lines.length < maxLines) {
+      lines.push(line);
+    }
+
+    lines.forEach((lineText, index) => {
+      context.fillText(lineText, x, y + index * lineHeight);
+    });
+
+    return y + lines.length * lineHeight;
+  }
+
+  async function createPostcardBlob() {
+    if (!scanResult || !postcardCanvasRef.current) {
+      return null;
+    }
+
+    const canvas = postcardCanvasRef.current;
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return null;
+    }
+
+    const width = 1080;
+    const height = 1350;
+    canvas.width = width;
+    canvas.height = height;
+
+    const gradient = context.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#08070b");
+    gradient.addColorStop(0.5, "#151021");
+    gradient.addColorStop(1, "#101827");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+
+    context.strokeStyle = "rgba(229, 184, 76, 0.5)";
+    context.lineWidth = 3;
+    context.strokeRect(54, 54, width - 108, height - 108);
+
+    context.fillStyle = "#e5b84c";
+    context.font = "700 34px Arial";
+    context.fillText("PALMVERSE", 86, 128);
+
+    context.fillStyle = "#f7f1df";
+    context.font = "700 70px Arial";
+    context.fillText("ผลลัพธ์คำทำนาย", 86, 218);
+
+    const readings = Object.entries(scanResult.data.analysis);
+    let y = 320;
+
+    readings.slice(0, 4).forEach(([id, reading]) => {
+      context.fillStyle = "rgba(255, 255, 255, 0.055)";
+      context.strokeStyle = "rgba(247, 241, 223, 0.16)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.roundRect(86, y - 60, width - 172, 225, 22);
+      context.fill();
+      context.stroke();
+
+      context.fillStyle = "#e5b84c";
+      context.font = "700 30px Arial";
+      context.fillText(READING_LABELS[id] ?? "คำทำนาย", 122, y);
+
+      context.fillStyle = "#f7f1df";
+      context.font = "700 38px Arial";
+      context.fillText(reading.title, 122, y + 54);
+
+      context.fillStyle = "#cfc5ad";
+      context.font = "400 30px Arial";
+      wrapCanvasText(context, reading.description, 122, y + 104, width - 244, 42, 2);
+
+      y += 255;
+    });
+
+    context.fillStyle = "#b8ac91";
+    context.font = "400 26px Arial";
+    context.fillText("เพื่อความบันเทิงและการทดลอง MVP เท่านั้น", 86, height - 105);
+
+    return new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/png", 0.95);
+    });
+  }
+
+  async function sharePostcard() {
+    if (!scanResult) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      const blob = await createPostcardBlob();
+
+      if (!blob) {
+        throw new Error("postcard failed");
+      }
+
+      const file = new File([blob], "palmverse-postcard.png", {
+        type: "image/png",
+      });
+      const shareData = {
+        title: "PalmVerse",
+        text: "ผลลัพธ์คำทำนายจาก PalmVerse",
+        files: [file],
+      };
+
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "palmverse-postcard.png";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setScanError("สร้างภาพสำหรับแชร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsSharing(false);
+    }
   }
 
   return (
@@ -291,6 +448,7 @@ export default function Home() {
         </div>
 
         <canvas ref={canvasRef} hidden />
+        <canvas ref={postcardCanvasRef} hidden />
         <input
           ref={fileInputRef}
           type="file"
@@ -333,6 +491,9 @@ export default function Home() {
 
         {scanResult ? (
           <div className="reading-list">
+            <button className="share-button" onClick={sharePostcard} disabled={isSharing}>
+              {isSharing ? "กำลังสร้างภาพแชร์" : "แชร์เป็น Postcard"}
+            </button>
             {Object.entries(scanResult.data.analysis).map(([id, reading]) => (
               <article className="reading-card" key={id}>
                 <p className="reading-id">{READING_LABELS[id] ?? "คำทำนาย"}</p>
