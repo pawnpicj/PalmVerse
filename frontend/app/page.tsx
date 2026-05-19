@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PalmPoint = [number, number];
 type UserHand = "left" | "right";
+type CaptureSource = "camera" | "upload";
 
 type SuggestedLine = {
   label: string;
@@ -20,6 +21,7 @@ type ScanResponse = {
       mediapipe_hand_enabled: boolean;
       hand_detected: boolean;
       handedness: string | null;
+      error: string | null;
       landmarks: Array<{
         id: number;
         x: number;
@@ -53,44 +55,77 @@ const API_BASE_URL =
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("palm-capture.jpg");
+  const [captureSource, setCaptureSource] = useState<CaptureSource>("camera");
   const [userHand, setUserHand] = useState<UserHand>("right");
   const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
+  const attachCameraStream = useCallback(async () => {
+    try {
+      const activeStream = streamRef.current;
+      const hasLiveTrack = activeStream
+        ?.getVideoTracks()
+        .some((track) => track.readyState === "live");
 
-    async function startCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 1600 },
-          },
-          audio: false,
-        });
-
+      if (activeStream && hasLiveTrack) {
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = activeStream;
+          await videoRef.current.play().catch(() => undefined);
         }
-      } catch {
-        setCameraError("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้องหรือเปิดผ่าน HTTPS");
+        return;
       }
-    }
 
-    startCamera();
+      const nextStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 1600 },
+        },
+        audio: false,
+      });
+
+      streamRef.current = nextStream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = nextStream;
+        await videoRef.current.play().catch(() => undefined);
+      }
+      setCameraError(null);
+    } catch {
+      setCameraError("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้องหรือเปิดผ่าน HTTPS");
+    }
+  }, []);
+
+  useEffect(() => {
+    attachCameraStream();
 
     return () => {
-      stream?.getTracks().forEach((track) => track.stop());
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     };
-  }, []);
+  }, [attachCameraStream]);
+
+  useEffect(() => {
+    if (!capturedImage) {
+      attachCameraStream();
+    }
+  }, [attachCameraStream, capturedImage]);
+
+  function bindVideoElement(node: HTMLVideoElement | null) {
+    videoRef.current = node;
+
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+      node.play().catch(() => undefined);
+    }
+  }
 
   function capturePalm() {
     const video = videoRef.current;
@@ -103,6 +138,11 @@ export default function Home() {
     const width = video.videoWidth;
     const height = video.videoHeight;
 
+    if (!width || !height) {
+      setCameraError("กล้องยังไม่พร้อม กรุณารอสักครู่แล้วลองถ่ายใหม่");
+      return;
+    }
+
     canvas.width = width;
     canvas.height = height;
 
@@ -110,6 +150,7 @@ export default function Home() {
     context?.drawImage(video, 0, 0, width, height);
     setCapturedImage(canvas.toDataURL("image/jpeg", 0.92));
     setSelectedFileName("palm-capture.jpg");
+    setCaptureSource("camera");
     setScanResult(null);
     setScanError(null);
   }
@@ -134,6 +175,7 @@ export default function Home() {
     reader.onload = () => {
       setCapturedImage(String(reader.result));
       setSelectedFileName(file.name || "palm-upload.jpg");
+      setCaptureSource("upload");
       setScanResult(null);
       setScanError(null);
     };
@@ -178,6 +220,8 @@ export default function Home() {
 
   function resetScan() {
     setCapturedImage(null);
+    setSelectedFileName("palm-capture.jpg");
+    setCaptureSource("camera");
     setScanResult(null);
     setScanError(null);
   }
@@ -197,7 +241,7 @@ export default function Home() {
           {capturedImage ? (
             <img className="palm-preview" src={capturedImage} alt="Captured palm" />
           ) : (
-            <video ref={videoRef} className="palm-preview" autoPlay muted playsInline />
+            <video ref={bindVideoElement} className="palm-preview" autoPlay muted playsInline />
           )}
 
           {isScanning && (
@@ -274,10 +318,16 @@ export default function Home() {
           <div className="reading-list">
             <article className="reading-card scan-meta">
               <p className="reading-id">SCAN_MODE</p>
-              <h3>{scanResult.data.user_hand === "left" ? "มือซ้าย" : "มือขวา"}</h3>
+              <h3>
+                {captureSource === "upload" ? "อัปโหลดรูป" : "ถ่ายจากกล้อง"} ·{" "}
+                {scanResult.data.user_hand === "left" ? "มือซ้าย" : "มือขวา"}
+              </h3>
+              <p>ไฟล์: {scanResult.data.image.filename}</p>
               <p>
                 {scanResult.data.processing.mediapipe_hand_enabled
-                  ? scanResult.data.processing.hand_detected
+                  ? scanResult.data.processing.error
+                    ? `ใช้ template fallback: ${scanResult.data.processing.error}`
+                    : scanResult.data.processing.hand_detected
                     ? `MediaPipe Hand ตรวจพบมือ (${scanResult.data.processing.landmarks.length} จุด)`
                     : "MediaPipe Hand เปิดอยู่ แต่ยังตรวจไม่พบมือในภาพนี้"
                   : "ยังไม่ได้ติดตั้ง MediaPipe Hand ใน backend จึงใช้ template mode ก่อน"}
