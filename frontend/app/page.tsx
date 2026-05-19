@@ -170,7 +170,7 @@ export default function Home() {
 
       setScanResult((await response.json()) as ScanResponse);
     } catch {
-      setScanError("สแกนไม่สำเร็จ กรุณาตรวจว่า backend ทำงานอยู่ที่ localhost:8089");
+      setScanError(`สแกนไม่สำเร็จ กรุณาตรวจว่า backend ทำงานอยู่ที่ ${API_BASE_URL}`);
     } finally {
       setIsScanning(false);
     }
